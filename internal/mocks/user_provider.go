@@ -84,6 +84,21 @@ func (mr *MockUserProviderMockRecorder) GetDetails(username any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDetails", reflect.TypeOf((*MockUserProvider)(nil).GetDetails), username)
 }
 
+// ListUsers mocks base method.
+func (m *MockUserProvider) ListUsers() ([]authentication.UserDetails, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListUsers")
+	ret0, _ := ret[0].([]authentication.UserDetails)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListUsers indicates an expected call of ListUsers.
+func (mr *MockUserProviderMockRecorder) ListUsers() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUsers", reflect.TypeOf((*MockUserProvider)(nil).ListUsers))
+}
+
 // StartupCheck mocks base method.
 func (m *MockUserProvider) StartupCheck() error {
 	m.ctrl.T.Helper()

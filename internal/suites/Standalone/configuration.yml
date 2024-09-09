@@ -14,6 +14,24 @@ telemetry:
     address: 'tcp://0.0.0.0:9959'
 
 log:
+  level: debug
+
+authentication_backend:
+  file:
+    path: /config/users.yml
+
+administration:
+  enabled: true
+  admin_group: "authelia-admin"
+  enable_user_management: true
+
+session:
+  expiration: 3600
+  inactivity: 300
+  remember_me: 1y
+  cookies:
+    - domain: 'example.com'
+      authelia_url: 'https://login.example.com:8080'
   level: 'debug'
 
 storage:
