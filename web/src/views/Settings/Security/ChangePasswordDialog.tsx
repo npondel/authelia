@@ -221,7 +221,9 @@ const ChangePasswordDialog = (props: Props) => {
                                 error={oldPasswordError}
                                 disabled={disabled}
                                 fullWidth
-                                onChange={(v) => setOldPassword(v.target.value)}
+                                onChange={(v: { target: { value: React.SetStateAction<string> } }) =>
+                                    setOldPassword(v.target.value)
+                                }
                                 onFocus={() => setOldPasswordError(false)}
                                 type="password"
                                 autoCapitalize="off"
@@ -244,7 +246,9 @@ const ChangePasswordDialog = (props: Props) => {
                                 disabled={disabled}
                                 value={newPassword}
                                 error={newPasswordError}
-                                onChange={(v) => setNewPassword(v.target.value)}
+                                onChange={(v: { target: { value: React.SetStateAction<string> } }) =>
+                                    setNewPassword(v.target.value)
+                                }
                                 onFocus={() => setNewPasswordError(false)}
                                 type="password"
                                 autoCapitalize="off"
@@ -270,7 +274,9 @@ const ChangePasswordDialog = (props: Props) => {
                                 disabled={disabled}
                                 value={repeatNewPassword}
                                 error={repeatNewPasswordError}
-                                onChange={(v) => setRepeatNewPassword(v.target.value)}
+                                onChange={(v: { target: { value: React.SetStateAction<string> } }) =>
+                                    setRepeatNewPassword(v.target.value)
+                                }
                                 onFocus={() => setRepeatNewPasswordError(false)}
                                 type="password"
                                 autoCapitalize="off"
