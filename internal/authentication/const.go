@@ -53,6 +53,10 @@ const (
 const (
 	ldapAttributeUnicodePwd   = "unicodePwd"
 	ldapAttributeUserPassword = "userPassword"
+
+	ldapAttrMail       = "mail"
+	ldapAttrCommonName = "cn"
+	ldapAttrMemberOf   = "memberOf"
 )
 
 const (
@@ -106,6 +110,11 @@ var (
 	ErrPasswordWeak = errors.New("your supplied password does not meet the password policy requirements")
 
 	ErrAuthenticationFailed = errors.New("authentication failed")
+	// ErrIncorrectPassword is returned when the new password is the same as the existing password.
+	ErrPasswordReuse = errors.New("you cannot reuse your old password")
+
+	// ErrEmptyInput is returned when an empty string or nil value is used to set a value
+	ErrEmptyInput = errors.New("empty input is not valid")
 )
 
 const fileAuthenticationMode = 0600
