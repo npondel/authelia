@@ -261,12 +261,13 @@ func NewTemplatedFileOptions(config *schema.Configuration) (opts *TemplatedFileO
 		PrivacyPolicyAccept:    strFalse,
 		Theme:                  config.Theme,
 
-		EndpointsPasswordReset: !(config.AuthenticationBackend.PasswordReset.Disable || config.AuthenticationBackend.PasswordReset.CustomURL.String() != ""),
-		EndpointsWebAuthn:      !config.WebAuthn.Disable,
-		EndpointsTOTP:          !config.TOTP.Disable,
-		EndpointsDuo:           !config.DuoAPI.Disable,
-		EndpointsOpenIDConnect: !(config.IdentityProviders.OIDC == nil),
-		EndpointsAuthz:         config.Server.Endpoints.Authz,
+		EndpointsPasswordReset:  !(config.AuthenticationBackend.PasswordReset.Disable || config.AuthenticationBackend.PasswordReset.CustomURL.String() != ""),
+		EndpointsPasswordChange: !config.AuthenticationBackend.PasswordChange.Disable,
+		EndpointsWebAuthn:       !config.WebAuthn.Disable,
+		EndpointsTOTP:           !config.TOTP.Disable,
+		EndpointsDuo:            !config.DuoAPI.Disable,
+		EndpointsOpenIDConnect:  !(config.IdentityProviders.OIDC == nil),
+		EndpointsAuthz:          config.Server.Endpoints.Authz,
 	}
 
 	if config.PrivacyPolicy.Enabled {
@@ -294,11 +295,12 @@ type TemplatedFileOptions struct {
 	Session                string
 	Theme                  string
 
-	EndpointsPasswordReset bool
-	EndpointsWebAuthn      bool
-	EndpointsTOTP          bool
-	EndpointsDuo           bool
-	EndpointsOpenIDConnect bool
+	EndpointsPasswordReset  bool
+	EndpointsPasswordChange bool
+	EndpointsWebAuthn       bool
+	EndpointsTOTP           bool
+	EndpointsDuo            bool
+	EndpointsOpenIDConnect  bool
 
 	EndpointsAuthz map[string]schema.ServerEndpointsAuthz
 }
@@ -348,13 +350,13 @@ func (options *TemplatedFileOptions) commonDataWithRememberMe(base, baseURL, dom
 // OpenAPIData returns a TemplatedFileOpenAPIData with the dynamic options.
 func (options *TemplatedFileOptions) OpenAPIData(base, baseURL, domain, nonce string) TemplatedFileOpenAPIData {
 	return TemplatedFileOpenAPIData{
-		Base:     base,
-		BaseURL:  baseURL,
-		Domain:   domain,
-		CSPNonce: nonce,
-
+		Base:           base,
+		BaseURL:        baseURL,
+		Domain:         domain,
+		CSPNonce:       nonce,
 		Session:        options.Session,
 		PasswordReset:  options.EndpointsPasswordReset,
+		PasswordChange: options.EndpointsPasswordChange,
 		WebAuthn:       options.EndpointsWebAuthn,
 		TOTP:           options.EndpointsTOTP,
 		Duo:            options.EndpointsDuo,
@@ -382,16 +384,17 @@ type TemplatedFileCommonData struct {
 
 // TemplatedFileOpenAPIData is a struct which is used for the OpenAPI spec file.
 type TemplatedFileOpenAPIData struct {
-	Base          string
-	BaseURL       string
-	Domain        string
-	CSPNonce      string
-	Session       string
-	PasswordReset bool
-	WebAuthn      bool
-	TOTP          bool
-	Duo           bool
-	OpenIDConnect bool
+	Base           string
+	BaseURL        string
+	Domain         string
+	CSPNonce       string
+	Session        string
+	PasswordReset  bool
+	PasswordChange bool
+	WebAuthn       bool
+	TOTP           bool
+	Duo            bool
+	OpenIDConnect  bool
 
 	EndpointsAuthz map[string]schema.ServerEndpointsAuthz
 }
