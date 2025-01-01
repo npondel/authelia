@@ -160,13 +160,13 @@ func (p *LDAPUserProvider) UpdatePassword(username, password string) (err error)
 	)
 
 	if client, err = p.connect(); err != nil {
-		return fmt.Errorf("unable to update password. Cause: %w", err)
+		return fmt.Errorf("%w : %v", ErrOperationFailed, err)
 	}
 
 	defer client.Close()
 
 	if profile, err = p.getUserProfile(client, username); err != nil {
-		return fmt.Errorf("unable to update password. Cause: %w", err)
+		return fmt.Errorf("%w : %v", ErrOperationFailed, err)
 	}
 
 	var controls []ldap.Control
@@ -203,27 +203,30 @@ func (p *LDAPUserProvider) UpdatePassword(username, password string) (err error)
 	}
 
 	if err != nil {
-		return fmt.Errorf("unable to update password. Cause: %w", err)
+		return fmt.Errorf("%w : %v", ErrOperationFailed, err)
 	}
 
 	return nil
 }
 
-// ChangePassword update the password of the given user.
+// ChangePassword is used to change a user's password but requires their old password to be successfully verified.
+//
+//nolint:gocyclo
 func (p *LDAPUserProvider) ChangePassword(username, oldPassword string, newPassword string) (err error) {
 	var (
 		client  LDAPClient
+		uclient LDAPClient
 		profile *ldapUserProfile
 	)
 
 	if client, err = p.connect(); err != nil {
-		return fmt.Errorf("unable to update password for user '%s'. Cause: %w", username, err)
+		return fmt.Errorf("%w : %v", ErrOperationFailed, err)
 	}
 
 	defer client.Close()
 
 	if profile, err = p.getUserProfile(client, username); err != nil {
-		return fmt.Errorf("unable to update password for user '%s'. Cause: %w", username, err)
+		return fmt.Errorf("%w : %v", ErrUserNotFound, err)
 	}
 
 	var controls []ldap.Control
@@ -235,22 +238,24 @@ func (p *LDAPUserProvider) ChangePassword(username, oldPassword string, newPassw
 		controls = append(controls, &controlMsftServerPolicyHints{ldapOIDControlMsftServerPolicyHintsDeprecated})
 	}
 
-	userPasswordOk, err := p.CheckUserPassword(username, oldPassword)
-
-	if err != nil {
-		if strings.Contains(err.Error(), ErrIncorrectPassword.Error()) {
-			userPasswordOk = false
-		} else {
-			return err
-		}
-	}
-
-	if !userPasswordOk {
-		return ErrIncorrectPassword
+	if strings.TrimSpace(newPassword) == "" {
+		return ErrPasswordWeak
 	}
 
 	if oldPassword == newPassword {
-		return ErrPasswordReuse
+		return ErrPasswordWeak
+	}
+
+	if uclient, err = p.connectCustom(p.config.Address.String(), profile.DN, oldPassword, p.config.StartTLS, p.dialOpts...); err != nil {
+		if errorCode := ldapGetErrorCode(err); errorCode != -1 {
+			switch errorCode {
+			case ldap.LDAPResultInvalidCredentials,
+				ldap.LDAPResultInappropriateAuthentication:
+				return ErrIncorrectPassword
+			}
+		}
+
+		return fmt.Errorf("%w : %v", ErrOperationFailed, err)
 	}
 
 	switch {
@@ -261,31 +266,49 @@ func (p *LDAPUserProvider) ChangePassword(username, oldPassword string, newPassw
 			newPassword,
 		)
 
-		err = p.pwdModify(client, pwdModifyRequest)
+		err = p.pwdModify(uclient, pwdModifyRequest)
 	case p.config.Implementation == schema.LDAPImplementationActiveDirectory:
 		modifyRequest := ldap.NewModifyRequest(profile.DN, controls)
 		// The password needs to be enclosed in quotes
 		// https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/6e803168-f140-4d23-b2d3-c3a8ab5917d2
 		pwdEncoded, err := encodingUTF16LittleEndian.NewEncoder().String(fmt.Sprintf("\"%s\"", newPassword))
 		if err != nil {
-			return fmt.Errorf("failed to encode new password for user '%s'. Cause: %w", username, err)
+			return fmt.Errorf("%w : %v", ErrOperationFailed, err)
 		}
 
 		modifyRequest.Replace(ldapAttributeUnicodePwd, []string{pwdEncoded})
 
-		err = p.modify(client, modifyRequest)
+		err = p.modify(uclient, modifyRequest)
 		if err != nil {
-			return fmt.Errorf("failed to modify password for user '%s': %w", username, err)
+			return fmt.Errorf("%w : %v", ErrOperationFailed, err)
 		}
 	default:
 		modifyRequest := ldap.NewModifyRequest(profile.DN, controls)
 		modifyRequest.Replace(ldapAttributeUserPassword, []string{newPassword})
 
-		err = p.modify(client, modifyRequest)
+		err = p.modify(uclient, modifyRequest)
 	}
 
+	//TODO: Better inform users regarding password reuse/password history.
 	if err != nil {
-		return fmt.Errorf("unable to update password for user '%s'. Cause: %w", username, err)
+		if errorCode := ldapGetErrorCode(err); errorCode != -1 {
+			switch errorCode {
+			case ldap.LDAPResultInvalidCredentials,
+				ldap.LDAPResultInappropriateAuthentication:
+				return ErrIncorrectPassword
+			case ldap.LDAPResultConstraintViolation,
+				ldap.LDAPResultObjectClassViolation,
+				ldap.ErrorEmptyPassword,
+				ldap.LDAPResultUnwillingToPerform:
+				return ErrPasswordWeak
+			case ldap.LDAPResultInsufficientAccessRights:
+				return ErrOperationFailed
+			default:
+				return ErrOperationFailed
+			}
+		}
+
+		return ErrOperationFailed
 	}
 
 	return nil
