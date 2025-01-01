@@ -160,13 +160,13 @@ func (p *LDAPUserProvider) UpdatePassword(username, password string) (err error)
 	)
 
 	if client, err = p.connect(); err != nil {
-		return fmt.Errorf("%w : %v", ErrOperationFailed, err)
+		return fmt.Errorf("unable to update password. Cause: %w", err)
 	}
 
 	defer client.Close()
 
 	if profile, err = p.getUserProfile(client, username); err != nil {
-		return fmt.Errorf("%w : %v", ErrOperationFailed, err)
+		return fmt.Errorf("unable to update password. Cause: %w", err)
 	}
 
 	var controls []ldap.Control
@@ -203,7 +203,7 @@ func (p *LDAPUserProvider) UpdatePassword(username, password string) (err error)
 	}
 
 	if err != nil {
-		return fmt.Errorf("%w : %v", ErrOperationFailed, err)
+		return fmt.Errorf("unable to update password. Cause: %w", err)
 	}
 
 	return nil
