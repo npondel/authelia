@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -140,6 +141,14 @@ func (p *FileUserProvider) ChangePassword(username string, oldPassword string, n
 		return ErrUserNotFound
 	}
 
+	if strings.TrimSpace(newPassword) == "" {
+		return ErrPasswordEmpty
+	}
+
+	if oldPassword == newPassword {
+		return ErrPasswordReuse
+	}
+
 	oldPasswordCorrect, err := p.CheckUserPassword(username, oldPassword)
 
 	if err != nil {
@@ -148,10 +157,6 @@ func (p *FileUserProvider) ChangePassword(username string, oldPassword string, n
 
 	if !oldPasswordCorrect {
 		return ErrIncorrectPassword
-	}
-
-	if oldPassword == newPassword {
-		return ErrPasswordReuse
 	}
 
 	var digest algorithm.Digest
