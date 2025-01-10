@@ -8,11 +8,12 @@ export async function getAllUserInfo(): Promise<UserInfo[]> {
     return res.map((user) => ({ ...user, method: toSecondFactorMethod(user.method) }));
 }
 
-interface UserChangeBody {
-    username: string;
-    display_name: string;
-    email: string;
-    groups: string[];
+interface UserChangeFields {
+    password?: string;
+    display_name?: string;
+    disabled?: boolean;
+    email?: string;
+    groups?: string[];
 }
 
 export interface AdminConfigBody {
@@ -25,13 +26,12 @@ interface DeleteUserBody {
     username: string;
 }
 
-export async function postChangeUser(username: string, display_name: string, email: string, groups: string[]) {
-    const data: UserChangeBody = {
+export async function postChangeUser(username: string, changes: Partial<UserChangeFields>) {
+    const data = {
         username,
-        display_name,
-        email,
-        groups,
+        ...Object.fromEntries(Object.entries(changes).filter(([_, value]) => value !== undefined)),
     };
+
     return PostWithOptionalResponse(AdminManageUserPath, data);
 }
 

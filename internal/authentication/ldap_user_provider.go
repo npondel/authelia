@@ -477,11 +477,15 @@ func (p *LDAPUserProvider) ChangeGroups(username string, newGroups []string) (er
 	return nil
 }
 
-func (p *LDAPUserProvider) AddUser(username, displayname, password string, opts ...func(options *NewUserDetailsOpts)) (err error) {
+func (p *LDAPUserProvider) AddUser(username, displayName, password string, opts ...func(options *NewUserOptionalDetailsOpts)) (err error) {
 	return nil
 }
 
 func (p *LDAPUserProvider) DeleteUser(username string) (err error) {
+	return nil
+}
+
+func (p *LDAPUserProvider) UpdateUser(username string, opts ...func(options *ModifyUserDetailsOpts)) (err error) {
 	return nil
 }
 

@@ -80,16 +80,12 @@ func (p *FileUserProvider) CheckUserPassword(username string, password string) (
 	return details.Password.MatchAdvanced(password)
 }
 
-// GetDetails retrieve the groups a user belongs to.
+// GetDetails retrieves a user's information.
 func (p *FileUserProvider) GetDetails(username string) (details *UserDetails, err error) {
 	var d FileUserDatabaseUserDetails
 
 	if d, err = p.database.GetUserDetails(username); err != nil {
 		return nil, err
-	}
-
-	if d.Disabled {
-		return nil, ErrUserNotFound
 	}
 
 	return d.ToUserDetails(), nil
@@ -126,7 +122,7 @@ func (p *FileUserProvider) UpdatePassword(username string, newPassword string) (
 	}
 
 	if details.Disabled {
-		return ErrUserNotFound
+		return ErrUserDisabled
 	}
 
 	var digest algorithm.Digest
@@ -140,9 +136,7 @@ func (p *FileUserProvider) UpdatePassword(username string, newPassword string) (
 	p.database.SetUserDetails(details.Username, &details)
 
 	p.mutex.Lock()
-
 	p.setTimeoutReload(time.Now())
-
 	p.mutex.Unlock()
 
 	if err = p.database.Save(); err != nil {
@@ -161,7 +155,7 @@ func (p *FileUserProvider) ChangePassword(username string, oldPassword string, n
 	}
 
 	if details.Disabled {
-		return ErrUserNotFound
+		return ErrUserDisabled
 	}
 
 	if strings.TrimSpace(newPassword) == "" {
@@ -193,9 +187,7 @@ func (p *FileUserProvider) ChangePassword(username string, oldPassword string, n
 	p.database.SetUserDetails(details.Username, &details)
 
 	p.mutex.Lock()
-
 	p.setTimeoutReload(time.Now())
-
 	p.mutex.Unlock()
 
 	if err = p.database.Save(); err != nil {
@@ -214,7 +206,7 @@ func (p *FileUserProvider) ChangeDisplayName(username string, newDisplayName str
 	}
 
 	if details.Disabled {
-		return ErrUserNotFound
+		return ErrUserDisabled
 	}
 
 	if newDisplayName == "" {
@@ -226,9 +218,7 @@ func (p *FileUserProvider) ChangeDisplayName(username string, newDisplayName str
 	p.database.SetUserDetails(details.Username, &details)
 
 	p.mutex.Lock()
-
 	p.setTimeoutReload(time.Now())
-
 	p.mutex.Unlock()
 
 	if err = p.database.Save(); err != nil {
@@ -247,7 +237,7 @@ func (p *FileUserProvider) ChangeEmail(username string, newEmail string) (err er
 	}
 
 	if details.Disabled {
-		return ErrUserNotFound
+		return ErrUserDisabled
 	}
 
 	if newEmail == "" {
@@ -259,9 +249,7 @@ func (p *FileUserProvider) ChangeEmail(username string, newEmail string) (err er
 	p.database.SetUserDetails(details.Username, &details)
 
 	p.mutex.Lock()
-
 	p.setTimeoutReload(time.Now())
-
 	p.mutex.Unlock()
 
 	if err = p.database.Save(); err != nil {
@@ -280,7 +268,7 @@ func (p *FileUserProvider) ChangeGroups(username string, newGroups []string) (er
 	}
 
 	if details.Disabled {
-		return ErrUserNotFound
+		return ErrUserDisabled
 	}
 
 	details.Groups = newGroups
@@ -288,9 +276,7 @@ func (p *FileUserProvider) ChangeGroups(username string, newGroups []string) (er
 	p.database.SetUserDetails(details.Username, &details)
 
 	p.mutex.Lock()
-
 	p.setTimeoutReload(time.Now())
-
 	p.mutex.Unlock()
 
 	if err = p.database.Save(); err != nil {
@@ -329,14 +315,15 @@ func (p *FileUserProvider) SetDisabled(username string, disabled bool) (err erro
 	return nil
 }
 
-func (p *FileUserProvider) AddUser(username, displayname, password string, opts ...func(options *NewUserDetailsOpts)) (err error) {
+// AddUser creates a new user in the file database. Takes additional, optional values via opts.
+func (p *FileUserProvider) AddUser(username, displayName, password string, opts ...func(options *NewUserOptionalDetailsOpts)) (err error) {
 	var digest algorithm.Digest
 
 	if digest, err = p.hash.Hash(password); err != nil {
 		return err
 	}
 
-	options := &NewUserDetailsOpts{}
+	options := &NewUserOptionalDetailsOpts{}
 
 	for _, opt := range opts {
 		opt(options)
@@ -344,11 +331,11 @@ func (p *FileUserProvider) AddUser(username, displayname, password string, opts 
 
 	details := FileUserDatabaseUserDetails{
 		Username:    username,
-		DisplayName: displayname,
+		DisplayName: displayName,
 		Password:    schema.NewPasswordDigest(digest),
-		Email:       options.Email,
+		Email:       *options.Email,
 		Groups:      options.Groups,
-		Disabled:    options.Disabled,
+		Disabled:    *options.Disabled,
 	}
 
 	p.database.SetUserDetails(details.Username, &details)
@@ -366,6 +353,48 @@ func (p *FileUserProvider) AddUser(username, displayname, password string, opts 
 	return nil
 }
 
+// UpdateUser modifies an existing user in the file database. Takes new values via opts.
+func (p *FileUserProvider) UpdateUser(username string, opts ...func(options *ModifyUserDetailsOpts)) (err error) {
+	var details FileUserDatabaseUserDetails
+
+	if details, err = p.database.GetUserDetails(username); err != nil {
+		return err
+	}
+
+	options := &ModifyUserDetailsOpts{}
+
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	var digest algorithm.Digest
+
+	if digest, err = p.hash.Hash(*options.Password); err != nil {
+		return err
+	}
+
+	details = FileUserDatabaseUserDetails{
+		DisplayName: *options.DisplayName,
+		Password:    schema.NewPasswordDigest(digest),
+		Email:       *options.Email,
+		Groups:      options.Groups,
+		Disabled:    *options.Disabled,
+	}
+
+	p.database.SetUserDetails(details.Username, &details)
+
+	p.mutex.Lock()
+	p.setTimeoutReload(time.Now())
+	p.mutex.Unlock()
+
+	if err = p.database.Save(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// DeleteUser deletes a user from the file database.
 func (p *FileUserProvider) DeleteUser(username string) (err error) {
 	p.database.DeleteUserDetails(username)
 

@@ -181,9 +181,7 @@ const UserManagementView = () => {
                     columns={columns}
                     editMode={"row"}
                     onRowDoubleClick={handleRowClick}
-                    autosizeOnMount
-                    checkboxSelection
-                    disableMultipleRowSelection
+                    checkboxSelection={false}
                     initialState={{
                         columns: {
                             columnVisibilityModel: {

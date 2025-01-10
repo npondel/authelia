@@ -263,8 +263,8 @@ func handleRouter(config *schema.Configuration, providers middlewares.Providers)
 	if !config.AuthenticationBackend.PasswordReset.Disable &&
 		config.AuthenticationBackend.PasswordReset.CustomURL.String() == "" {
 		// Password reset related endpoints.
-		r.POST("/api/reset-password/identity/start", middlewareAPI(handlers.ResetPasswordIdentityStart))
-		r.POST("/api/reset-password/identity/finish", middlewareAPI(handlers.ResetPasswordIdentityFinish))
+		r.POST("/api/reset-password/identity/start", middlewareAPI(handlers.ResetPasswordIdentityVerificationStart))
+		r.POST("/api/reset-password/identity/finish", middlewareAPI(handlers.ResetPasswordIdentityVerificationFinish))
 
 		r.POST("/api/reset-password", middlewareAPI(handlers.ResetPasswordPOST))
 		r.DELETE("/api/reset-password", middlewareAPI(handlers.ResetPasswordDELETE))
@@ -281,14 +281,14 @@ func handleRouter(config *schema.Configuration, providers middlewares.Providers)
 
 	if config.Administration.Enabled {
 		r.GET("/api/admin/config", RequireAdminUser1FA(handlers.AdminConfigGET))
+
 		if config.Administration.EnableUserManagement {
 			r.GET("/api/admin/users/info", RequireAdminUser1FA(handlers.AllUsersInfoGET))
 
-			r.POST("/api/admin/user/", RequireAdminUser1FA(handlers.ChangeUserPOST))
-			r.PUT("/api/admin/user/", RequireAdminUser1FA(handlers.CreateUserPOST))
+			r.POST("/api/admin/user/", RequireAdminUser1FA(handlers.NewUserPOST))
+			r.PUT("/api/admin/user/", RequireAdminUser1FA(handlers.ChangeUserPut))
 			r.DELETE("/api/admin/user/", RequireAdminUser1FA(handlers.DeleteUserDELETE))
 		}
-		// Information about all users.
 	}
 
 	// User Session Elevation.

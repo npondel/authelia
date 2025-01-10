@@ -4,12 +4,17 @@ import (
 	"github.com/authelia/authelia/v4/internal/model"
 )
 
-// UserProvider is the interface for interacting with the authentication backends.
+// UserProvider is the interface for interacting with authentication backends.
+// All methods expect properly formatted and validated inputs - no validation is performed
+// by the interface implementations themselves.
 type UserProvider interface {
 	model.StartupCheck
 
-	// AddUser adds a user given the new user's information.
-	AddUser(username, displayname, password string, opts ...func(options *NewUserDetailsOpts)) (err error)
+	// AddUser creates a new user in the file database. Takes additional, optional values via opts.
+	AddUser(username, displayName, password string, opts ...func(options *NewUserOptionalDetailsOpts)) (err error)
+
+	// UpdateUser modifies an existing user in the file database. Takes new values via opts.
+	UpdateUser(username string, opts ...func(options *ModifyUserDetailsOpts)) (err error)
 
 	// DeleteUser deletes user given the username.
 	DeleteUser(username string) (err error)
@@ -17,7 +22,7 @@ type UserProvider interface {
 	// CheckUserPassword checks if provided password matches for the given user.
 	CheckUserPassword(username, password string) (valid bool, err error)
 
-	// GetDetails retrieve the details for a user.
+	// GetDetails retrieves a user's information, returns UserNotFound when a user is disabled.
 	GetDetails(username string) (details *UserDetails, err error)
 
 	// UpdatePassword updates the password of the given user.

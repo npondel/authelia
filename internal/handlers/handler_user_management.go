@@ -24,6 +24,7 @@ type newUserRequestBody struct {
 	Password    string   `json:"password"`
 	Email       string   `json:"email"`
 	Groups      []string `json:"groups"`
+	Disabled    *bool    `json:"disabled"`
 }
 type deleteUserRequestBody struct {
 	Username string `json:"username"`
@@ -35,8 +36,8 @@ type AdminConfigRequestBody struct {
 	AllowAdminsToAddAdmins bool   `json:"allow_admins_to_add_admins"`
 }
 
-// ChangeUserPOST takes a changeUserRequestBody object and saves any changes.
-func ChangeUserPOST(ctx *middlewares.AutheliaCtx) {
+// ChangeUserPut takes a changeUserRequestBody object and saves any changes.
+func ChangeUserPut(ctx *middlewares.AutheliaCtx) {
 	var (
 		err         error
 		requestBody changeUserRequestBody
@@ -68,6 +69,8 @@ func ChangeUserPOST(ctx *middlewares.AutheliaCtx) {
 	if userDetails, err = ctx.Providers.UserProvider.GetDetails(requestBody.Username); err != nil {
 		ctx.Logger.WithError(err).Errorf("Error retrieving details for user '%s'", requestBody.Username)
 		ctx.Response.SetStatusCode(fasthttp.StatusInternalServerError)
+
+		return
 	}
 
 	if userDetails.DisplayName != requestBody.DisplayName {
@@ -144,12 +147,12 @@ func AdminConfigGET(ctx *middlewares.AutheliaCtx) {
 }
 
 //nolint:gocyclo
-func NewUserPUT(ctx *middlewares.AutheliaCtx) {
+func NewUserPOST(ctx *middlewares.AutheliaCtx) {
 	var (
 		err         error
 		userSession session.UserSession
 		newUser     newUserRequestBody
-		options     []func(*authentication.NewUserDetailsOpts)
+		options     []func(*authentication.NewUserOptionalDetailsOpts)
 	)
 
 	if userSession, err = ctx.GetSession(); err != nil {
@@ -229,7 +232,9 @@ func NewUserPUT(ctx *middlewares.AutheliaCtx) {
 			}
 		}
 
-		options = append(options, authentication.WithGroups(newUser.Groups))
+		options = append(options, func(o *authentication.NewUserOptionalDetailsOpts) {
+			o.SetGroups(newUser.Groups)
+		})
 	}
 
 	if newUser.Email != "" {
@@ -237,7 +242,16 @@ func NewUserPUT(ctx *middlewares.AutheliaCtx) {
 			ctx.Logger.WithError(err).Errorf("Email '%s' is not a valid email", newUser.Email)
 		}
 
-		options = append(options, authentication.WithEmail(newUser.Email))
+		options = append(options, func(o *authentication.NewUserOptionalDetailsOpts) {
+			email := newUser.Email
+			o.SetEmail(&email)
+		})
+	}
+
+	if newUser.Disabled != nil {
+		options = append(options, func(o *authentication.NewUserOptionalDetailsOpts) {
+			o.SetDisabled(newUser.Disabled)
+		})
 	}
 
 	if err = ctx.Providers.UserProvider.AddUser(newUser.Username, newUser.DisplayName, newUser.Password, options...); err != nil {

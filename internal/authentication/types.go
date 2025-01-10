@@ -59,27 +59,27 @@ type UserDetails struct {
 	Groups      []string
 }
 
-func WithEmail(email string) func(detailsOpts *NewUserDetailsOpts) {
-	return func(opts *NewUserDetailsOpts) {
-		opts.Email = email
-	}
-}
-func WithGroups(groups []string) func(detailsOpts *NewUserDetailsOpts) {
-	return func(opts *NewUserDetailsOpts) {
-		opts.Groups = groups
-	}
-}
-func WithDisabled(disabled bool) func(detailsOpts *NewUserDetailsOpts) {
-	return func(opts *NewUserDetailsOpts) {
-		opts.Disabled = disabled
-	}
-}
-
-type NewUserDetailsOpts struct {
-	Email    string
-	Disabled bool
+type NewUserOptionalDetailsOpts struct {
+	Email    *string
+	Disabled *bool
 	Groups   []string
 }
+
+func (o *NewUserOptionalDetailsOpts) SetEmail(email *string)     { o.Email = email }
+func (o *NewUserOptionalDetailsOpts) SetDisabled(disabled *bool) { o.Disabled = disabled }
+func (o *NewUserOptionalDetailsOpts) SetGroups(groups []string)  { o.Groups = groups }
+
+type ModifyUserDetailsOpts struct {
+	Password    *string
+	DisplayName *string
+	Email       *string
+	Disabled    *bool
+	Groups      []string
+}
+
+func (o *ModifyUserDetailsOpts) SetEmail(email *string)     { o.Email = email }
+func (o *ModifyUserDetailsOpts) SetDisabled(disabled *bool) { o.Disabled = disabled }
+func (o *ModifyUserDetailsOpts) SetGroups(groups []string)  { o.Groups = groups }
 
 // Addresses returns the Emails []string as []mail.Address formatted with DisplayName as the Name attribute.
 func (d UserDetails) Addresses() (addresses []mail.Address) {

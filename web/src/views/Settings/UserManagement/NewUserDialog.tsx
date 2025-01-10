@@ -167,50 +167,51 @@ const NewUserDialog = (props: Props) => {
         if (!changesMade) {
             handleSafeClose();
         }
-        if (newUser != null) {
-            handleResetErrors();
-            let error = false;
-
-            if (!ValidateUsername(newUser.username)) {
-                error = true;
-                setUsernameError(true);
-            }
-
-            if (!ValidateDisplayName(newUser.display_name)) {
-                error = true;
-                setDisplayNameError(true);
-            }
-
-            if (!ValidateEmail(newUser.emails[0]) && newUser.emails[0] !== "") {
-                error = true;
-                setEmailError(true);
-            }
-
-            if (newUser.password === "") {
-                error = true;
-                setPasswordError(true);
-            }
-            if (error) {
-                return;
-            }
-            try {
-                await putNewUser(
-                    newUser.username,
-                    newUser.display_name,
-                    newUser.password,
-                    Array.isArray(newUser.emails) ? newUser.emails[0] : newUser.emails,
-                    newUser.groups,
-                );
-                createSuccessNotification(translate("User created successfully."));
-                handleClose();
-            } catch {
-                handleResetErrors();
-                createErrorNotification(translate("Error: More informative errors WIP"));
-                handleSafeClose();
-            }
-        } else {
+        if (newUser === null) {
             handleSafeClose();
             return;
+        }
+        handleResetErrors();
+        let error = false;
+
+        if (!ValidateUsername(newUser.username)) {
+            error = true;
+            setUsernameError(true);
+        }
+
+        if (!ValidateDisplayName(newUser.display_name)) {
+            error = true;
+            setDisplayNameError(true);
+        }
+
+        if (!ValidateEmail(newUser.emails[0]) && newUser.emails[0] !== "") {
+            error = true;
+            setEmailError(true);
+        }
+
+        if (newUser.password === "") {
+            error = true;
+            setPasswordError(true);
+        }
+
+        if (error) {
+            return;
+        }
+
+        try {
+            await putNewUser(
+                newUser.username,
+                newUser.display_name,
+                newUser.password,
+                Array.isArray(newUser.emails) ? newUser.emails[0] : newUser.emails,
+                newUser.groups,
+            );
+            createSuccessNotification(translate("User created successfully."));
+            handleClose();
+        } catch {
+            handleResetErrors();
+            createErrorNotification(translate("Error: More informative errors WIP"));
+            handleSafeClose();
         }
     };
 

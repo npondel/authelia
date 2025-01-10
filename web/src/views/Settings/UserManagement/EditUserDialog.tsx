@@ -79,12 +79,11 @@ const EditUserDialog = function (props: Props) {
                 return;
             }
             try {
-                await postChangeUser(
-                    editedUser.username,
-                    editedUser.display_name,
-                    Array.isArray(editedUser.emails) ? editedUser.emails[0] : editedUser.emails,
-                    editedUser.groups,
-                );
+                await postChangeUser(editedUser.username, {
+                    display_name: editedUser.display_name,
+                    email: Array.isArray(editedUser.emails) ? editedUser.emails[0] : editedUser.emails,
+                    groups: editedUser.groups,
+                });
                 createSuccessNotification(translate("User modified successfully."));
             } catch (err) {
                 handleResetErrors();
